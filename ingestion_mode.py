@@ -1,6 +1,7 @@
 import argparse
 import pandas as pd
 from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 
 # Menampilkan semua kolom dalam DataFrame saat dicetak
 pd.options.display.max_columns = None
@@ -13,17 +14,20 @@ def get_last_id(table_name, db_path="sqlite:///imdb.db"):
     with engine.connect() as conn:
         # Memeriksa apakah tabel ada di database
         table = conn.execute(
-            f"""
+            text(
+                f"""
             SELECT
                 name
             FROM sqlite_master
-            WHERE type = 'table' AND name = '{table_name}'
-        """
+            WHERE type = 'table' AND name = :table_name
+            """
+            ),
+            {"table_name": table_name},
         )
 
         if table.first() is not None:
             # Mendapatkan ID maksimum dari tabel jika tabel ada
-            id = conn.execute(f"SELECT MAX(id) FROM {table_name}")
+            id = conn.execute(text(f"SELECT MAX(id) FROM {table_name}"))
             return id.first()[0]
 
         # Mengembalikan None jika tabel tidak ada

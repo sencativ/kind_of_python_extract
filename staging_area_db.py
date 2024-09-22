@@ -1,6 +1,6 @@
 import argparse
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # Menampilkan semua kolom dalam DataFrame saat dicetak
 pd.options.display.max_columns = None
@@ -13,12 +13,14 @@ def get_last_id(table_name, db_path="sqlite:///imdb.db"):
     with engine.connect() as conn:
         # Memeriksa apakah tabel ada di database
         table = conn.execute(
-            f"""
+            text(
+                f"""
             SELECT
                 name
             FROM sqlite_master
             WHERE type = 'table' AND name = '{table_name}'
         """
+            )
         )
 
         if table.first() is not None:
@@ -56,11 +58,15 @@ def load_from_staging(
     with engine.connect() as conn:
         if mode == "incremental":
             # Memindahkan data dari staging ke tabel tujuan tanpa menghapus data lama
-            conn.execute(f"INSERT INTO {table_name} SELECT * FROM {staging_table_name}")
+            conn.execute(
+                text(f"INSERT INTO {table_name} SELECT * FROM {staging_table_name}")
+            )
         else:
             # Menggantikan tabel tujuan dengan data dari tabel staging
-            conn.execute(f"DROP TABLE IF EXISTS {table_name}")
-            conn.execute(f"ALTER TABLE {staging_table_name} RENAME TO {table_name}")
+            conn.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
+            conn.execute(
+                text(f"ALTER TABLE {staging_table_name} RENAME TO {table_name}")
+            )
 
 
 if __name__ == "__main__":
